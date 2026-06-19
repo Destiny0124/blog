@@ -178,6 +178,50 @@ body {
   margin: 0 auto var(--spacing-lg);
 }
 
+/* 每日一言 */
+.daily-quote {
+  max-width: 580px;
+  margin: 0 auto var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-tag-bg);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-accent);
+  text-align: left;
+  animation: fadeIn 0.8s ease;
+}
+
+.daily-quote-season {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: var(--spacing-xs);
+}
+
+.daily-quote-text {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.75;
+  color: var(--color-text);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  quotes: none;
+}
+
+.daily-quote-from {
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  font-style: normal;
+  text-align: right;
+}
+
 /* 搜索 / 筛选区（Hero 内） */
 .hero-filter {
   display: flex;
@@ -1100,6 +1144,9 @@ body {
   .hero-title { font-size: 1.8rem; }
   .hero-subtitle { font-size: 0.88rem; }
   .hero-greeting { font-size: 0.75rem; }
+
+  .daily-quote { margin: 0 var(--spacing-sm) var(--spacing-md); padding: var(--spacing-sm) var(--spacing-md); }
+  .daily-quote-text { font-size: 0.92rem; }
 
   .article-card { padding: var(--spacing-md); }
   .card-title { font-size: 1rem; }

@@ -8,6 +8,137 @@
   "use strict";
 
   // ============================================================
+  // 0. 每日一言（网络拉取 + 本地兜底）
+  // ============================================================
+
+  var QUOTE_CACHE_KEY = "blog_daily_quote";
+  var QUOTE_CACHE_DATE_KEY = "blog_daily_quote_date";
+
+  /** 当前季节/节日信息 */
+  function getSeasonInfo() {
+    var m = new Date().getMonth() + 1;
+    var d = new Date().getDate();
+    if (m === 1 && d === 1)  return { icon: "🎉", label: "元旦" };
+    if (m === 2 && d === 14) return { icon: "💝", label: "情人节" };
+    if (m === 5 && d === 1)  return { icon: "💪", label: "劳动节" };
+    if (m === 6 && d === 1)  return { icon: "🎈", label: "儿童节" };
+    if (m === 10 && d === 1) return { icon: "🇨🇳", label: "国庆节" };
+    if (m === 12 && d === 25) return { icon: "🎄", label: "圣诞节" };
+    if ((m === 1 && d >= 20) || (m === 2 && d <= 15)) return { icon: "🧧", label: "新春" };
+    if (m >= 3 && m <= 5)  return { icon: "🌸", label: "春日" };
+    if (m >= 6 && m <= 8)  return { icon: "☀️", label: "盛夏" };
+    if (m >= 9 && m <= 11) return { icon: "🍂", label: "秋日" };
+    return { icon: "❄️", label: "冬日" };
+  }
+
+  /** 本地兜底语录库 */
+  function getLocalQuote() {
+    var m = new Date().getMonth() + 1;
+    var seasonal = {
+      spring: [
+        { text: "春天是一点、一点地化开的。", from: "迟子建" },
+        { text: "江南无所有，聊赠一枝春。", from: "陆凯《赠范晔诗》" },
+        { text: "风传花信，雨濯春尘。", from: "《小窗幽记》" },
+        { text: "整个春天都是生命力独享风流的季节。", from: "史铁生" },
+      ],
+      summer: [
+        { text: "生如夏花之绚烂，死如秋叶之静美。", from: "泰戈尔" },
+        { text: "绿树阴浓夏日长，楼台倒影入池塘。", from: "高骈《山亭夏日》" },
+        { text: "在夏天，我们吃绿豆、桃、樱桃和甜瓜。", from: "罗伯特·瓦尔泽" },
+        { text: "夏天属于散文和柠檬，属于裸露和慵懒。", from: "德里克·沃尔科特" },
+      ],
+      autumn: [
+        { text: "秋天是第二个春天，每片叶子都是花朵。", from: "加缪" },
+        { text: "自古逢秋悲寂寥，我言秋日胜春朝。", from: "刘禹锡《秋词》" },
+        { text: "秋日薄暮，用菊花煮竹叶青，人与海棠俱醉。", from: "林清玄" },
+        { text: "晴秋上午，随便走走，不一定要快乐。", from: "木心" },
+      ],
+      winter: [
+        { text: "晚来天欲雪，能饮一杯无？", from: "白居易《问刘十九》" },
+        { text: "冬天来了，春天还会远吗？", from: "雪莱" },
+        { text: "家人闲坐，灯火可亲。", from: "汪曾祺" },
+        { text: "红泥小火炉，绿蚁新醅酒。", from: "白居易" },
+      ],
+    };
+    var universal = [
+      { text: "一个人知道自己为什么而活，就可以忍受任何一种生活。", from: "尼采" },
+      { text: "世界上只有一种真正的英雄主义，那就是认清生活真相后依然热爱生活。", from: "罗曼·罗兰" },
+      { text: "种一棵树最好的时间是十年前，其次是现在。", from: "非洲谚语" },
+      { text: "吹灭读书灯，一身都是月。", from: "桂苓" },
+      { text: "且将新火试新茶，诗酒趁年华。", from: "苏轼" },
+      { text: "人生如逆旅，我亦是行人。", from: "苏轼" },
+      { text: "怕什么真理无穷，进一寸有一寸的欢喜。", from: "胡适" },
+      { text: "万物皆有裂痕，那是光照进来的地方。", from: "莱昂纳德·科恩" },
+      { text: "你的问题主要在于读书不多而想得太多。", from: "杨绛" },
+      { text: "每一个不曾起舞的日子，都是对生命的辜负。", from: "尼采" },
+      { text: "有一分热，发一分光。", from: "鲁迅" },
+      { text: "日拱一卒无有尽，功不唐捐终入海。", from: "《荀子》" },
+      { text: "追风赶月莫停留，平芜尽处是春山。", from: "田歆" },
+    ];
+    var pool = [];
+    if (m === 12 || m <= 2) pool = pool.concat(seasonal.winter);
+    else if (m >= 3 && m <= 5) pool = pool.concat(seasonal.spring);
+    else if (m >= 6 && m <= 8) pool = pool.concat(seasonal.summer);
+    else pool = pool.concat(seasonal.autumn);
+    pool = pool.concat(universal);
+    var today = new Date();
+    var seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    return pool[seed % pool.length];
+  }
+
+  /** 从网络拉取一言（双源竞速 + 超时兜底） */
+  function fetchRemoteQuote(callback) {
+    var done = false;
+    tryFetch("https://v1.hitokoto.cn/?c=d&encode=json", function (d) {
+      if (done) return; done = true;
+      callback({ text: d.hitokoto, from: (d.from_who ? d.from_who + "·" : "") + "《" + d.from + "》" });
+    });
+    setTimeout(function () {
+      if (done) return;
+      tryFetch("https://v1.apizero.cn/yiyan?format=json", function (d) {
+        if (done) return; done = true;
+        callback({ text: d.content || d.hitokoto, from: d.origin || d.from || "" });
+      });
+    }, 1500);
+    setTimeout(function () {
+      if (!done) { done = true; callback(null); }
+    }, 4000);
+  }
+
+  function tryFetch(url, ok) {
+    try {
+      fetch(url, { method: "GET", mode: "cors" })
+        .then(function (r) { if (!r.ok) throw Error(); return r.json(); })
+        .then(function (d) { ok(d); })
+        .catch(function () {});
+    } catch (e) {}
+  }
+
+  /** 获取今日一言（缓存 → 网络 → 本地兜底） */
+  function getDailyQuote(callback) {
+    var today = new Date().toDateString();
+    var cacheDate = null;
+    try { cacheDate = localStorage.getItem(QUOTE_CACHE_DATE_KEY); } catch (e) {}
+    if (cacheDate === today) {
+      try {
+        var c = JSON.parse(localStorage.getItem(QUOTE_CACHE_KEY));
+        if (c && c.text) { callback(c); return; }
+      } catch (e) {}
+    }
+    fetchRemoteQuote(function (remote) {
+      if (remote && remote.text) {
+        remote.remote = true;
+        try { localStorage.setItem(QUOTE_CACHE_KEY, JSON.stringify(remote)); localStorage.setItem(QUOTE_CACHE_DATE_KEY, today); } catch (e) {}
+        callback(remote);
+      } else {
+        var local = getLocalQuote();
+        local.remote = false;
+        callback(local);
+      }
+    });
+  }
+
+  // ============================================================
   // 1. 工具函数
   // ============================================================
 
@@ -62,7 +193,7 @@
       + "</header>";
   }
 
-  /** Hero 区 —— 首页顶部大标题 */
+  /** Hero 区 —— 首页顶部大标题 + 每日一言 */
   function renderHero() {
     var filterBtns = "";
     if (SITE.categories && SITE.categories.length > 0) {
@@ -71,11 +202,17 @@
       }).join("");
     }
 
+    var season = getSeasonInfo();
     return ""
       + "<section class=\"hero\">"
       +   "<span class=\"hero-greeting\">✺ 探索 · 思考 · 记录</span>"
       +   "<h1 class=\"hero-title\">" + SITE.title + "</h1>"
       +   "<p class=\"hero-subtitle\">" + SITE.subtitle + "</p>"
+      +   "<div class=\"daily-quote\" id=\"daily-quote\">"
+      +     "<span class=\"daily-quote-season\">" + season.icon + " " + season.label + "</span>"
+      +     "<blockquote class=\"daily-quote-text\" id=\"daily-quote-text\">加载中…</blockquote>"
+      +     "<cite class=\"daily-quote-from\" id=\"daily-quote-from\"></cite>"
+      +   "</div>"
       +   (filterBtns ? "<div class=\"hero-filter\">" + filterBtns + "</div>" : "")
       + "</section>";
   }
@@ -576,9 +713,32 @@
     if (route.page === "home") {
       highlightFilter(activeCategory || "全部");
       bindFilterEvents();
+      bindDailyQuote();
     }
 
     window.scrollTo(0, 0);
+  }
+
+  function bindDailyQuote() {
+    getDailyQuote(function (quote) {
+      var textEl = document.getElementById("daily-quote-text");
+      var fromEl = document.getElementById("daily-quote-from");
+      if (textEl) {
+        textEl.textContent = "“" + quote.text + "”";
+        textEl.style.opacity = "0";
+        textEl.style.transition = "opacity 0.6s ease";
+        requestAnimationFrame(function () {
+          textEl.style.opacity = "1";
+        });
+      }
+      if (fromEl && quote.from) {
+        fromEl.textContent = "—— " + quote.from;
+      }
+      if (quote.remote) {
+        var dot = document.querySelector(".daily-quote-season");
+        if (dot) dot.textContent = dot.textContent + " · 一言";
+      }
+    });
   }
 
   // ============================================================
