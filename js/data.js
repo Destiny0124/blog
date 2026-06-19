@@ -2,7 +2,7 @@
    data.js —— 站点配置与文章数据
    这是你最常编辑的文件：
    - 改站点信息：修改 SITE 对象
-   - 发新文章：在 ARTICLES 数组末尾追加一个对象即可
+   - 发新文章：直接在网页编辑器中写（点击导航栏「写文章」）
    ============================================================ */
 
 /* --------------------------------------------------------
@@ -62,7 +62,7 @@ const SITE = {
     <p>ISTJ 型人格以务实、可靠、有条理著称。喜欢按计划行事，注重细节和逻辑，习惯在行动之前深思熟虑。也许正是这种特质，让我对计算机科学和物理实验中的严谨与秩序感格外着迷。</p>
   `,
 
-  // 分类列表（首页按此显示筛选按钮）
+  // 分类列表（首页按此显示筛选按钮，也是写文章时的分类选项）
   categories: ["全部", "技术", "随笔", "学习笔记", "物理实验"],
 
   // 社交媒体链接（留空则不显示；会显示在页脚）
@@ -78,20 +78,9 @@ const SITE = {
 };
 
 /* --------------------------------------------------------
-   文章数据
-   添加新文章：在数组末尾追加一个对象，格式如下：
-
-   {
-     id: "url-friendly-slug",       // 必填：URL 标识，英文+连字符，唯一
-     title: "文章标题",             // 必填
-     date: "2026-06-19",            // 必填：YYYY-MM-DD 格式
-     category: "技术",              // 必填：需与 SITE.categories 中的某个值一致
-     tags: ["标签1", "标签2"],      // 可选：标签数组
-     excerpt: "摘要，约1-2句话...", // 必填：显示在首页卡片上
-     content: `                     // 必填：正文 HTML（支持 h2/h3/p/blockquote/pre/code/img/ul/ol/strong/em/a）
-       <p>正文内容...</p>
-     `,
-   }
+   内置示范文章
+   用户在网页编辑器里写的文章会存到 localStorage，
+   和这里的文章合并展示。
    -------------------------------------------------------- */
 const ARTICLES = [
 
@@ -126,52 +115,104 @@ const ARTICLES = [
 
       <p>如果你正在读这篇文章，感谢你的光临。希望这里的内容对你有所启发。</p>
     `
-  },
-
-  {
-    id: "three-wire-pendulum",
-    title: "三线摆测量刚体转动惯量——实验回顾与思考",
-    date: "2026-06-18",
-    category: "物理实验",
-    tags: ["物理实验", "转动惯量", "三线摆", "误差分析"],
-    excerpt: "回顾三线摆法测量刚体转动惯量的实验，记录数据处理过程和误差分析，探讨工程应用中的扩展思考。",
-    content: `
-      <h2>实验概述</h2>
-      <p>三线摆法是一种经典的转动惯量测量方法，通过测量下圆盘的扭摆周期，结合几何参数和质量，计算出刚体的转动惯量。其核心原理基于简谐运动和能量守恒。</p>
-
-      <h2>核心公式</h2>
-      <p>下盘转动惯量的计算公式为：</p>
-      <pre><code>I₀ = (m₀ · g · r · R · T₀²) / (4π² · H)</code></pre>
-      <p>其中 R 并不等于下圆盘的半径，而是圆心到悬线点的距离。实验中通过测量三悬线点构成的等边三角形边长 L，再用 R = L/√3 求得真实值。这是一个容易被忽视的细节。</p>
-
-      <h2>实验数据处理</h2>
-      <p>经过测量和计算，得到以下结果：</p>
-      <ul>
-        <li>圆盘转动惯量 I₀ = (2.89 ± 0.03) × 10⁻³ kg·m²</li>
-        <li>圆环转动惯量 I（测量值）= 3.56 × 10⁻³ kg·m²</li>
-        <li>圆环转动惯量 I（理论值）= 3.58 × 10⁻³ kg·m²</li>
-        <li>偏差 ΔI = 0.02 × 10⁻³ kg·m²</li>
-      </ul>
-      <p>测量值与理论值非常接近，相对误差在可接受范围内，验证了三线摆法的可行性。</p>
-
-      <h2>误差来源分析</h2>
-      <h3>系统误差</h3>
-      <ul>
-        <li>上下圆盘未严格水平，悬线长度不完全相等，导致摆动并非纯简谐扭转</li>
-        <li>卷尺、秒表等仪器本身的精度限制</li>
-        <li>理论公式忽略了空气阻力和悬线质量</li>
-      </ul>
-      <h3>随机误差</h3>
-      <ul>
-        <li>人工使用秒表存在反应时间误差</li>
-        <li>释放刚体时可能未完全静止</li>
-        <li>刚体放置位置偏离中心轴线</li>
-      </ul>
-
-      <h2>改进思路</h2>
-      <p>在实验扩展部分，我讨论了使用光电门替代秒表进行周期测量的方案。光电门的计时精度远高于人工操作，可以有效减小随机误差。此外，优化悬线固定方式、在更稳定的环境下进行实验，都能进一步提升测量精度。</p>
-      <p>从工程应用角度看，这种方法可以用于小型齿轮和飞轮的转动惯量测量，将实测值与 CAD 建模中的理论值对比，对机械系统的设计验证有实际意义。</p>
-    `
-  },
+  }
 
 ];
+
+/* --------------------------------------------------------
+   文章数据持久化（localStorage）
+   - ARTICLES: 内置示范文章（只读）
+   - localStorage: 用户在网页编辑器里写的文章（可编辑/删除）
+   - getAllArticles(): 合并两者，用户文章排前面
+   -------------------------------------------------------- */
+
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "blog_user_articles";
+
+  function loadUserArticles() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+
+  function saveUserArticles(list) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    } catch (e) {
+      alert("保存失败，可能存储空间已满。建议导出备份后清理旧文章。");
+    }
+  }
+
+  function generateSlug(title) {
+    var slug = title.trim().toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w一-鿿\-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    return slug || "article-" + Date.now();
+  }
+
+  function todayStr() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+
+  /* 合并所有文章（用户写的 + 内置），按日期降序 */
+  window.getAllArticles = function () {
+    var userArticles = loadUserArticles();
+    userArticles.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    var builtin = ARTICLES.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    return userArticles.concat(builtin);
+  };
+
+  /* 按 id 查找文章（先查用户文章，再查内置） */
+  window.findArticle = function (id) {
+    var userArticles = loadUserArticles();
+    var found = userArticles.find(function (a) { return a.id === id; });
+    if (found) return found;
+    return ARTICLES.find(function (a) { return a.id === id; });
+  };
+
+  /* 保存文章（新建或更新） */
+  window.saveArticle = function (article) {
+    var userArticles = loadUserArticles();
+    var idx = userArticles.findIndex(function (a) { return a.id === article.id; });
+    if (idx >= 0) {
+      userArticles[idx] = article;
+    } else {
+      userArticles.push(article);
+    }
+    saveUserArticles(userArticles);
+  };
+
+  /* 删除用户文章，返回 true 表示成功 */
+  window.deleteArticle = function (id) {
+    var userArticles = loadUserArticles();
+    var filtered = userArticles.filter(function (a) { return a.id !== id; });
+    if (filtered.length === userArticles.length) return false;
+    saveUserArticles(filtered);
+    return true;
+  };
+
+  /* 导出用户文章 JSON（备份用，控制台调用） */
+  window.exportUserArticles = function () {
+    return JSON.stringify(loadUserArticles(), null, 2);
+  };
+
+  /* 检查某篇文章是否可编辑/删除（用户文章） */
+  window.isUserArticle = function (id) {
+    return loadUserArticles().some(function (a) { return a.id === id; });
+  };
+
+  /* 重新加载用户文章（被 main.js 编辑器使用） */
+  window.loadUserArticles = loadUserArticles;
+
+  // 工具暴露给编辑器
+  window._blogUtils = { generateSlug: generateSlug, todayStr: todayStr };
+
+})();

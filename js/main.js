@@ -1,6 +1,6 @@
 /* ============================================================
    main.js —— 路由系统与页面渲染 / DeepSeek 风格
-   路由：hash → 首页 / 文章详情 / 关于
+   路由：hash → 首页 / 文章详情 / 关于 / 简介 / 游戏 / 写文章
    一般不需要修改这个文件
    ============================================================ */
 
@@ -56,6 +56,7 @@
       +       "<a href=\"#/games\" class=\"" + (currentRoute === "/games" ? "active" : "") + "\">游戏</a>"
       +       "<a href=\"#/profile\" class=\"" + (currentRoute === "/profile" ? "active" : "") + "\">简介</a>"
       +       "<a href=\"#/about\" class=\"" + (currentRoute === "/about" ? "active" : "") + "\">关于</a>"
+      +       "<a href=\"#/editor\" class=\"" + (currentRoute === "/editor" || currentRoute === "/edit" ? "active" : "") + "\">✎ 写文章</a>"
       +     "</nav>"
       +   "</div>"
       + "</header>";
@@ -79,18 +80,21 @@
       + "</section>";
   }
 
-  /** 文章卡片 */
+  /** 文章卡片 —— 用户文章显示 📝 标记 */
   function renderArticleCard(article) {
     var tagsHtml = "";
     if (article.tags && article.tags.length > 0) {
       tagsHtml = article.tags.map(function(t) { return "<span class=\"tag\">" + t + "</span>"; }).join("");
     }
 
+    var userBadge = window.isUserArticle && window.isUserArticle(article.id)
+      ? " <span title=\"在线编写\" style=\"font-size:0.7rem;opacity:0.5\">📝</span>" : "";
+
     return ""
       + "<li class=\"article-item\">"
       +   "<a href=\"#/article/" + article.id + "\" class=\"article-card\">"
       +     "<div class=\"card-icon\">" + categoryIcon(article.category) + "</div>"
-      +     "<h3 class=\"card-title\">" + article.title + "</h3>"
+      +     "<h3 class=\"card-title\">" + article.title + userBadge + "</h3>"
       +     "<p class=\"card-excerpt\">" + article.excerpt + "</p>"
       +     "<div class=\"card-footer\">"
       +       "<span class=\"card-date\">" + shortDate(article.date) + "</span>"
@@ -141,14 +145,11 @@
 
   /** 首页 */
   function renderHome(category) {
-    var articles = ARTICLES.slice().sort(function(a,b) { return new Date(b.date) - new Date(a.date); });
+    var articles = window.getAllArticles();
 
     if (category && category !== "全部") {
       articles = articles.filter(function(a) { return a.category === category; });
     }
-
-    // 高亮当前筛选按钮
-    var activeCat = category || "全部";
 
     var listHtml = articles.length > 0
       ? "<ul class=\"article-grid\">" + articles.map(renderArticleCard).join("") + "</ul>"
@@ -168,18 +169,24 @@
   }
 
   /** 文章详情 */
-  function renderArticle(article) {
+  function renderArticleDetail(article) {
     if (!article) return render404();
 
     var tagsHtml = article.tags
       ? article.tags.map(function(t) { return "<span class=\"tag\">" + t + "</span>"; }).join("")
       : "";
 
+    var editBtn = "";
+    if (window.isUserArticle && window.isUserArticle(article.id)) {
+      editBtn = "<a href=\"#/editor/" + article.id + "\" class=\"article-edit-btn\">✎ 编辑此文</a>";
+    }
+
     return ""
       + "<main class=\"main\">"
       +   "<div class=\"article-detail-wrapper\">"
       +     "<article class=\"article-detail\">"
       +       "<a href=\"#/\" class=\"back-link\"><span class=\"arrow\">←</span> 返回首页</a>"
+      +       (editBtn ? editBtn : "")
       +       "<header class=\"article-header\">"
       +         "<h1 class=\"article-title\">" + article.title + "</h1>"
       +         "<div class=\"article-meta\">"
@@ -229,6 +236,94 @@
       + "</main>";
   }
 
+  /** 写文章 / 编辑文章 */
+  function renderEditor(articleId) {
+    var isEdit = !!articleId;
+    var article = isEdit ? window.findArticle(articleId) : null;
+    if (isEdit && !article) return render404();
+
+    var title = article ? article.title : "";
+    var category = article ? article.category : (SITE.categories[1] || "随笔");
+    var tagsStr = article && article.tags ? article.tags.join("，") : "";
+    var excerpt = article ? article.excerpt : "";
+    var content = article ? article.content : "";
+    var date = article ? article.date : window._blogUtils.todayStr();
+
+    // 分类选项
+    var catOptions = SITE.categories.filter(function(c) { return c !== "全部"; }).map(function(c) {
+      return "<option value=\"" + c + "\"" + (category === c ? " selected" : "") + ">" + c + "</option>";
+    }).join("");
+
+    return ""
+      + "<main class=\"main\">"
+      +   "<div class=\"article-detail-wrapper\">"
+      +     "<div class=\"editor-page\">"
+      +       "<a href=\"" + (isEdit ? "#/article/" + articleId : "#/") + "\" class=\"back-link\"><span class=\"arrow\">←</span> " + (isEdit ? "返回文章" : "返回首页") + "</a>"
+      +       "<h1 class=\"article-title\" style=\"margin-bottom:var(--spacing-lg)\">" + (isEdit ? "编辑文章" : "写文章") + "</h1>"
+
+      // 表单
+      +       "<div class=\"editor-form\">"
+
+      // 标题
+      +         "<label class=\"editor-label\">标题 <span class=\"editor-required\">*</span></label>"
+      +         "<input type=\"text\" id=\"editor-title\" class=\"editor-input\" value=\"" + escapeAttr(title) + "\" placeholder=\"文章标题\">"
+
+      // 分类 + 日期
+      +         "<div class=\"editor-row\">"
+      +           "<div class=\"editor-col\">"
+      +             "<label class=\"editor-label\">分类</label>"
+      +             "<select id=\"editor-category\" class=\"editor-input\">" + catOptions + "</select>"
+      +           "</div>"
+      +           "<div class=\"editor-col\">"
+      +             "<label class=\"editor-label\">日期</label>"
+      +             "<input type=\"date\" id=\"editor-date\" class=\"editor-input\" value=\"" + date + "\">"
+      +           "</div>"
+      +         "</div>"
+
+      // 标签
+      +         "<label class=\"editor-label\">标签 <span class=\"editor-hint\">（用中文逗号或英文逗号分隔）</span></label>"
+      +         "<input type=\"text\" id=\"editor-tags\" class=\"editor-input\" value=\"" + escapeAttr(tagsStr) + "\" placeholder=\"博客, 随想\">"
+
+      // 摘要
+      +         "<label class=\"editor-label\">摘要 <span class=\"editor-required\">*</span></label>"
+      +         "<textarea id=\"editor-excerpt\" class=\"editor-textarea editor-excerpt\" rows=\"2\" placeholder=\"用一两句话概括文章内容...\">" + escapeHtml(excerpt) + "</textarea>"
+
+      // 正文
+      +         "<label class=\"editor-label\">正文 <span class=\"editor-required\">*</span> <span class=\"editor-hint\">（支持 HTML：&lt;h2&gt; &lt;p&gt; &lt;blockquote&gt; &lt;pre&gt; &lt;code&gt; &lt;img&gt; &lt;ul&gt; &lt;ol&gt; &lt;li&gt; &lt;strong&gt; &lt;em&gt; &lt;a&gt;）</span></label>"
+      +         "<textarea id=\"editor-content\" class=\"editor-textarea editor-content\" rows=\"18\" placeholder=\"<h2>小标题</h2>&#10;<p>正文内容...</p>&#10;&#10;<blockquote>&#10;  引用文字...&#10;</blockquote>\">" + escapeHtml(content) + "</textarea>"
+
+      // 快捷插入按钮
+      +         "<div class=\"editor-insert-btns\">"
+      +           "<span class=\"editor-insert-label\">快捷插入：</span>"
+      +           "<button class=\"insert-btn\" data-tag=\"h2\">标题</button>"
+      +           "<button class=\"insert-btn\" data-tag=\"p\">段落</button>"
+      +           "<button class=\"insert-btn\" data-tag=\"blockquote\">引用</button>"
+      +           "<button class=\"insert-btn\" data-tag=\"pre\">代码块</button>"
+      +           "<button class=\"insert-btn\" data-tag=\"ul\">列表</button>"
+      +           "<button class=\"insert-btn\" data-tag=\"img\">图片</button>"
+      +         "</div>"
+
+      // 操作按钮
+      +         "<div class=\"editor-actions\">"
+      +           "<button class=\"game-btn\" id=\"editor-save\">" + (isEdit ? "更新文章" : "发布文章") + "</button>"
+      +           (isEdit ? "<button class=\"game-btn editor-delete-btn\" id=\"editor-delete\">删除文章</button>" : "")
+      +         "</div>"
+
+      +         "<p id=\"editor-msg\" class=\"editor-msg\"></p>"
+      +       "</div>"
+
+      // 隐藏字段：原始 id
+      +       "<input type=\"hidden\" id=\"editor-id\" value=\"" + (isEdit ? articleId : "") + "\">"
+
+      +     "</div>"
+      +   "</div>"
+      + "</main>";
+
+    // HTML 转义辅助
+    function escapeAttr(str) { return str.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    function escapeHtml(str) { return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  }
+
   /** 游戏页面 */
   function renderGame(gameId) {
     var gameMap = {
@@ -238,8 +333,6 @@
     };
     var cfg = gameMap[gameId];
     if (!cfg) return render404();
-
-    // 返回一个带标记的容器，由 render() 特殊处理
     return '<main class="main" id="game-mount" data-game="' + gameId + '"></main>';
   }
 
@@ -255,7 +348,6 @@
     };
     var initFn = gameMap[gameId];
     if (initFn && window.Games && window.Games[initFn]) {
-      // 清理上一个游戏
       if (window._gameCleanup) {
         window._gameCleanup();
         window._gameCleanup = null;
@@ -279,7 +371,122 @@
   }
 
   // ============================================================
-  // 4. 路由系统
+  // 4. 编辑器事件绑定
+  // ============================================================
+
+  function bindEditorEvents() {
+    // 保存按钮
+    var saveBtn = document.getElementById("editor-save");
+    if (saveBtn) {
+      saveBtn.addEventListener("click", function () {
+        var title = document.getElementById("editor-title").value.trim();
+        var category = document.getElementById("editor-category").value;
+        var date = document.getElementById("editor-date").value;
+        var tagsRaw = document.getElementById("editor-tags").value.trim();
+        var excerpt = document.getElementById("editor-excerpt").value.trim();
+        var content = document.getElementById("editor-content").value.trim();
+        var originalId = document.getElementById("editor-id").value;
+
+        if (!title) { showMsg("请填写标题", "error"); return; }
+        if (!excerpt) { showMsg("请填写摘要", "error"); return; }
+        if (!content) { showMsg("请填写正文", "error"); return; }
+
+        // 解析标签
+        var tags = [];
+        if (tagsRaw) {
+          tags = tagsRaw.split(/[，,]/).map(function(t) { return t.trim(); }).filter(Boolean);
+        }
+
+        // 生成 id
+        var id = originalId || window._blogUtils.generateSlug(title);
+
+        // 检查 id 唯一性（排除自身）
+        var existing = window.findArticle(id);
+        if (existing && existing.id !== originalId) {
+          id = id + "-" + Date.now().toString(36);
+        }
+
+        var article = {
+          id: id,
+          title: title,
+          date: date || window._blogUtils.todayStr(),
+          category: category,
+          tags: tags,
+          excerpt: excerpt,
+          content: content,
+        };
+
+        window.saveArticle(article);
+        showMsg("✓ 文章已保存！", "success");
+
+        // 跳转到文章详情
+        setTimeout(function () {
+          window.location.hash = "#/article/" + id;
+        }, 600);
+      });
+    }
+
+    // 删除按钮
+    var deleteBtn = document.getElementById("editor-delete");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", function () {
+        var id = document.getElementById("editor-id").value;
+        if (!id) return;
+        if (!confirm("确定要删除这篇文章吗？此操作不可撤销。")) return;
+        var ok = window.deleteArticle(id);
+        if (ok) {
+          showMsg("已删除", "success");
+          setTimeout(function () {
+            window.location.hash = "#/";
+          }, 400);
+        } else {
+          showMsg("删除失败", "error");
+        }
+      });
+    }
+
+    // 快捷插入按钮
+    var insertBtns = document.querySelectorAll(".insert-btn");
+    insertBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var tag = this.dataset.tag;
+        var textarea = document.getElementById("editor-content");
+        if (!textarea) return;
+
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var before = textarea.value.substring(0, start);
+        var selected = textarea.value.substring(start, end) || "内容";
+        var after = textarea.value.substring(end);
+
+        var snippets = {
+          h2: "<h2>" + selected + "</h2>",
+          p: "<p>" + selected + "</p>",
+          blockquote: "<blockquote>\n  <p>" + selected + "</p>\n</blockquote>",
+          pre: "<pre><code>" + selected + "</code></pre>",
+          ul: "<ul>\n  <li>" + selected + "</li>\n  <li>...</li>\n</ul>",
+          img: '<img src="https://..." alt="' + selected + '">',
+        };
+
+        textarea.value = before + (snippets[tag] || "") + after;
+        textarea.focus();
+        textarea.setSelectionRange(start, start + (snippets[tag] || "").length);
+      });
+    });
+
+    function showMsg(msg, type) {
+      var el = document.getElementById("editor-msg");
+      if (!el) return;
+      el.textContent = msg;
+      el.className = "editor-msg editor-msg-" + type;
+      if (type === "success") {
+        setTimeout(function () { el.textContent = ""; el.className = "editor-msg"; }, 3000);
+      }
+    }
+  }
+
+  // ============================================================
+  // 5. 路由系统
   // ============================================================
 
   function parseRoute(hash) {
@@ -292,9 +499,13 @@
     m = path.match(/^category\/(.+)/);
     if (m) return { page: "home", category: decodeURIComponent(m[1]) };
 
+    m = path.match(/^editor\/(.+)/);
+    if (m) return { page: "editor", id: m[1] };
+
     if (path === "about") return { page: "about" };
     if (path === "profile") return { page: "profile" };
     if (path === "games") return { page: "games" };
+    if (path === "editor") return { page: "editor" };
 
     m = path.match(/^game\/(.+)/);
     if (m) return { page: "game", id: m[1] };
@@ -307,6 +518,7 @@
     if (route.page === "about") return "/about";
     if (route.page === "profile") return "/profile";
     if (route.page === "games" || route.page === "game") return "/games";
+    if (route.page === "editor") return "/editor";
     return "/" + route.page;
   }
 
@@ -322,14 +534,17 @@
         pageHtml = renderHome(activeCategory);
         break;
       case "article":
-        var article = ARTICLES.find(function(a) { return a.id === route.id; });
-        pageHtml = renderArticle(article);
+        var article = window.findArticle(route.id);
+        pageHtml = renderArticleDetail(article);
         break;
       case "about":
         pageHtml = renderAbout();
         break;
       case "profile":
         pageHtml = renderProfile();
+        break;
+      case "editor":
+        pageHtml = renderEditor(route.id || null);
         break;
       case "games":
         pageHtml = window.Games.renderHub();
@@ -350,6 +565,10 @@
     document.getElementById("app").innerHTML =
       renderHeader(getNavKey(route)) + pageHtml + renderFooter();
 
+    if (route.page === "editor") {
+      bindEditorEvents();
+    }
+
     if (route.page === "game") {
       mountGame(route.id);
     }
@@ -363,7 +582,7 @@
   }
 
   // ============================================================
-  // 5. 事件绑定
+  // 6. 事件绑定
   // ============================================================
 
   function bindFilterEvents() {
@@ -385,7 +604,7 @@
   }
 
   // ============================================================
-  // 6. 启动
+  // 7. 启动
   // ============================================================
 
   window.addEventListener("hashchange", render);

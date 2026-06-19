@@ -521,7 +521,8 @@ body {
    7. About Page
    -------------------------------------------------------- */
 .about-page,
-.profile-page { max-width: var(--content-width); margin: 0 auto; padding: 0 var(--spacing-md); }
+.profile-page,
+.editor-page { max-width: var(--content-width); margin: 0 auto; padding: 0 var(--spacing-md); }
 
 .about-page .article-title {
   font-family: var(--font-serif);
@@ -531,7 +532,164 @@ body {
 }
 
 /* --------------------------------------------------------
-   8. Footer
+   8. Editor Page
+   -------------------------------------------------------- */
+
+/* 文章详情编辑按钮 */
+.article-edit-btn {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  margin-bottom: var(--spacing-sm);
+  padding: 4px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 100px;
+  transition: all var(--transition);
+}
+.article-edit-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+/* 编辑器表单 */
+.editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.editor-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.03em;
+}
+
+.editor-required {
+  color: #c0392b;
+}
+
+.editor-hint {
+  font-weight: 400;
+  font-size: 0.76rem;
+  color: var(--color-text-tertiary);
+}
+
+.editor-input {
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--transition);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editor-input:focus {
+  border-color: var(--color-accent);
+}
+
+.editor-row {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.editor-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.editor-textarea {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-code-bg);
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editor-textarea:focus {
+  border-color: var(--color-accent);
+}
+
+.editor-excerpt {
+  font-family: var(--font-sans);
+}
+
+/* 快捷插入按钮 */
+.editor-insert-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.editor-insert-label {
+  font-size: 0.76rem;
+  color: var(--color-text-tertiary);
+  margin-right: 2px;
+}
+
+.insert-btn {
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 3px 12px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.insert-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+/* 保存 / 删除按钮行 */
+.editor-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-top: var(--spacing-sm);
+}
+
+.editor-delete-btn {
+  background: #c0392b !important;
+}
+
+.editor-delete-btn:hover {
+  background: #a93226 !important;
+}
+
+/* 保存提示 */
+.editor-msg {
+  font-size: 0.88rem;
+  min-height: 1.5em;
+}
+
+.editor-msg-success { color: #27ae60; }
+.editor-msg-error { color: #c0392b; }
+
+/* --------------------------------------------------------
+   9. Footer
    -------------------------------------------------------- */
 .footer {
   border-top: 1px solid var(--color-border-light);
