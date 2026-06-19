@@ -29,7 +29,7 @@ const SITE = {
     <p>如果你对这里的文章有任何想法或建议，欢迎交流。</p>
 
     <h3>关于这个博客</h3>
-    <p>这个博客采用纯静态 HTML/CSS/JS 搭建，没有使用任何框架或构建工具。配色以黑白灰为主，追求简洁、克制的阅读体验。博客的源代码可以在 GitHub 上找到。</p>
+    <p>这个博客采用纯静态 HTML/CSS/JS 搭建，没有使用任何框架或构建工具。配色以黑白灰为主，追求简洁、克制的阅读体验。博客的源代码在 <a href="https://github.com/Destiny0124/blog" target="_blank">GitHub</a> 上开源，可通过 <a href="https://destiny0124.github.io/blog/" target="_blank">destiny0124.github.io/blog</a> 在线访问。</p>
   `,
 
   // 个人简介页面（支持 HTML）
@@ -39,6 +39,7 @@ const SITE = {
       <li><strong>姓名：</strong>王欣越</li>
       <li><strong>MBTI：</strong>ISTJ</li>
       <li><strong>身份：</strong>计算机科学与技术专业学生</li>
+      <li><strong>博客：</strong><a href="https://destiny0124.github.io/blog/" target="_blank">destiny0124.github.io/blog</a></li>
     </ul>
 
     <h2>联系方式</h2>
@@ -66,7 +67,7 @@ const SITE = {
 
   // 社交媒体链接（留空则不显示；会显示在页脚）
   social: {
-    github: "https://github.com",
+    github: "https://github.com/Destiny0124/blog",
     email: "starmoon3624@gmail.com",
     qqEmail: "2098944274@qq.com",
     wechat: "W0X1Y24",
