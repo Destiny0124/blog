@@ -66,8 +66,8 @@
    *  尽量填满可视区域，同时保证不过度拉伸 */
   function calcScale(container, W, H) {
     var pad = 32;
-    var availW = Math.min(container.clientWidth - pad, 780);
-    var availH = Math.min(window.innerHeight * 0.62, H * 3);
+    var availW = Math.min(container.clientWidth - pad, 900);
+    var availH = Math.min(window.innerHeight * 0.66, H * 3);
     return Math.min(availW / W, availH / H, 2.5);
   }
 
